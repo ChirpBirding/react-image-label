@@ -1,9 +1,9 @@
-import React from 'react';
-import { Shape } from '../base/types';
+import React from "react";
+import {Shape} from "../base/types";
 
 export const useImageAnnotator = () => {
   const [handles, setHandles] = React.useState<AnnotatorHandles>();
-  return { setHandles, annotator: handles };
+  return {setHandles, annotator: handles};
 };
 
 export type AnnotatorHandles = {
@@ -19,5 +19,6 @@ export type AnnotatorHandles = {
   updateCategories: (id: number, categories: string[], color?: string) => void;
   zoom: (factor: number, relative?: boolean) => void;
   getShapes: () => Shape[];
+  setMarkerPosition: (position: number) => void;
   container: HTMLDivElement;
-}
+};

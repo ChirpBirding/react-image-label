@@ -1,30 +1,38 @@
-import { Svg } from "react-svgdotjs";
-import { Shape, ElementWithExtra, StaticData, Point } from "./types";
-import Util from './util'
+import {Element, Svg} from "react-svgdotjs";
+import {Shape, ElementWithExtra, StaticData, Point} from "./types";
+import Util from "./util";
 import PolygonBuilder from "./builders/PolygonBuilder";
-import { ShapeBuilder } from "./ShapeBuilder";
+import {ShapeBuilder} from "./ShapeBuilder";
 import RectangleBuilder from "./builders/RectangleBuilder";
 import CircleBuilder from "./builders/CircleBuilder";
 import EllipseBuilder from "./builders/EllipseBuilder";
-import { DotBuilder } from "./builders/DotBuilder";
+import {DotBuilder} from "./builders/DotBuilder";
 
 export class Director {
   static instance?: Director;
   static onAdded: ((shape: Shape) => any) | undefined;
   static onContextMenu: ((shape: Shape) => any) | undefined;
   static onSelected: ((shape: Shape) => any) | undefined;
+  static onUpdated: (() => void) | undefined;
   builders: ShapeBuilder<Shape>[];
   elements: ElementWithExtra[] = [];
   origin?: Point;
 
   constructor(public svg: Svg, public container: HTMLDivElement) {
-    this.builders = [new PolygonBuilder(), new RectangleBuilder(), new CircleBuilder(), new EllipseBuilder(), new DotBuilder()];
+    this.builders = [
+      new PolygonBuilder(),
+      new RectangleBuilder(),
+      new CircleBuilder(),
+      new EllipseBuilder(),
+      new DotBuilder()
+    ];
   }
 
   getBuilder<T extends Shape>(shape: T): ShapeBuilder<T> {
     let builder = this.builders.find(b => b.ofType(shape))! as ShapeBuilder<T>;
     builder.shape = shape;
-    return builder
+    builder.onUpdated = Director.onUpdated;
+    return builder;
   }
 
   stopEdit = (): void => this.builders.filter(b => b.element?.editing).forEach(b => b.stopEdit());
@@ -80,15 +88,19 @@ export class Director {
     }
     let id = builder.element.shape.id;
     this.elements.push(builder.element);
-    builder.element.node.addEventListener('contextmenu', (ev: MouseEvent) => {
-      ev.preventDefault();
-      let elem = this.elements.find(p => p.shape.id === id)!;
-      Director.onContextMenu?.(elem.shape);
-      return false;
-    }, false);
+    builder.element.node.addEventListener(
+      "contextmenu",
+      (ev: MouseEvent) => {
+        ev.preventDefault();
+        let elem = this.elements.find(p => p.shape.id === id)!;
+        Director.onContextMenu?.(elem.shape);
+        return false;
+      },
+      false
+    );
     builder.element.node.onclick = (e: MouseEvent) => {
       let elem = this.elements.find(p => p.shape.id === id)!;
-      if(!e.ctrlKey && !elem.editing) {
+      if (!e.ctrlKey && !elem.editing) {
         this.edit(id);
         Director.onSelected?.(builder.element!.shape);
       }
@@ -99,6 +111,7 @@ export class Director {
       Director.onAdded?.(builder.element.shape);
       Director.onSelected?.(builder.element.shape);
     }
+    Director.onUpdated?.();
   }
 
   updateCategories(id: number, categories: string[], color?: string) {
@@ -117,6 +130,7 @@ export class Director {
     builder.element = elem;
     builder.removeElement();
     this.elements.splice(this.elements.indexOf(elem), 1);
+    Director.onUpdated?.();
   }
 
   remove() {
@@ -128,7 +142,7 @@ export class Director {
 
   drag_md(container: HTMLDivElement, e: MouseEvent) {
     if (e.buttons === 1 && e.ctrlKey && !this.origin) {
-      this.origin = { X: e.clientX, Y: e.clientY };
+      this.origin = {X: e.clientX, Y: e.clientY};
       container.onmousemove = (event: MouseEvent) => this.drag_mm(event);
       container.onmouseup = () => this.drag_mu();
     }
@@ -139,7 +153,7 @@ export class Director {
       let parent = this.container;
       parent.scrollLeft = parent.scrollLeft - e.clientX + this.origin.X;
       parent.scrollTop = parent.scrollTop - e.clientY + this.origin.Y;
-      this.origin = { X: e.clientX, Y: e.clientY };
+      this.origin = {X: e.clientX, Y: e.clientY};
       if (!e.ctrlKey) this.drag_mu();
     }
   }
@@ -159,18 +173,24 @@ export class Director {
     svg.size(sd.width * sd.ratio, sd.height * sd.ratio);
     ShapeBuilder._svg = svg;
     ShapeBuilder._sd = sd;
-    let instance = Director.instance = new Director(svg, container);
+    let instance = (Director.instance = new Director(svg, container));
     container.onmousedown = (event: MouseEvent) => instance.drag_md(container, event);
     container.onwheel = (event: WheelEvent) => instance.mousewheel(event);
     container.onclick = (e: MouseEvent) => !instance.builders.some(b => b.drawing) && !e.ctrlKey && instance.stopEdit();
   }
 
-  static setActions(onAdded?: (shape: Shape) => any, onContextMenu?: (shape: Shape) => any, onSelected?: (shape: Shape) => any) {
+  static setActions(
+    onAdded?: (shape: Shape) => any,
+    onContextMenu?: (shape: Shape) => any,
+    onSelected?: (shape: Shape) => any,
+    onUpdated?: () => void
+  ) {
     let hoc = (fun?: (shape: Shape) => any) => (shape: Shape) =>
-      fun?.(shape.getOutput(ShapeBuilder._sd.ratio, ShapeBuilder._svg.node))
+      fun?.(shape.getOutput(ShapeBuilder._sd.ratio, ShapeBuilder._svg.node));
     Director.onAdded = hoc(onAdded);
     Director.onContextMenu = hoc(onContextMenu);
     Director.onSelected = hoc(onSelected);
+    Director.onUpdated = onUpdated;
   }
 
   clear() {
@@ -189,11 +209,17 @@ export class Director {
       e.preventDefault();
       let parent = this.container;
       let scale = e.deltaY > 0 ? 0.8 : 1.25;
-      let { scrollLeft, scrollTop } = parent;
+      let {scrollLeft, scrollTop} = parent;
       this.setSizeAndRatio(scale, true);
       this.zoom(scale);
-      parent.scrollLeft = Math.min(Math.max(scrollLeft * scale + (scale - 1) * (e.pageX - parent.offsetLeft), 0), parent.scrollWidth - parent.clientWidth);
-      parent.scrollTop = Math.min(Math.max(scrollTop * scale + (scale - 1) * (e.pageY - parent.offsetTop), 0), parent.scrollHeight - parent.clientHeight);
+      parent.scrollLeft = Math.min(
+        Math.max(scrollLeft * scale + (scale - 1) * (e.pageX - parent.offsetLeft), 0),
+        parent.scrollWidth - parent.clientWidth
+      );
+      parent.scrollTop = Math.min(
+        Math.max(scrollTop * scale + (scale - 1) * (e.pageY - parent.offsetTop), 0),
+        parent.scrollHeight - parent.clientHeight
+      );
     }
   }
 

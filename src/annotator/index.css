@@ -1,6 +1,6 @@
-.il-svg{
+.il-svg {
   overflow-y: scroll;
-  margin: 0 auto;
+  margin: 0;
   display: block;
   background-color: white;
 }
@@ -22,11 +22,14 @@
   cursor: grabbing;
 }
 
-.grabbable+.move-icon, .grabbable+.rot-icon {
+.grabbable + .move-icon,
+.grabbable + .rot-icon {
   opacity: 0.4;
 }
 
-.grabbable:hover+.move-icon, .grabbable:hover+.rot-icon, .rot-icon:hover {
+.grabbable:hover + .move-icon,
+.grabbable:hover + .rot-icon,
+.rot-icon:hover {
   opacity: 0.9;
 }
 

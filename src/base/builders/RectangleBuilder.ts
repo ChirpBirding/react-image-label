@@ -1,12 +1,13 @@
-import { ArrayXY, PointArray } from '@svgdotjs/svg.js'
-import { AngledBuilder } from "../AngledBuilder";
-import { Rectangle, Point } from "../types";
+import { ArrayXY, on, PointArray } from '@svgdotjs/svg.js';
+import { AngledBuilder } from '../AngledBuilder';
+import { Rectangle, Point } from '../types';
 import { ShapeBuilder } from '../ShapeBuilder';
 import Util from '../util';
 
 export default class RectangleBuilder extends AngledBuilder<Rectangle> {
   rectOrigin?: Point;
   shape?: Rectangle;
+  onUpdated: (() => void) | undefined;
   newShape = () => new Rectangle();
 
   ofType<T>(shape: T): boolean {
@@ -15,7 +16,7 @@ export default class RectangleBuilder extends AngledBuilder<Rectangle> {
 
   rect_md(e: MouseEvent, addPolyline: () => void) {
     if (e.buttons === 1 && !e.ctrlKey && !this.rectOrigin) {
-      if (this.element?.editing) this.stopEdit()
+      if (this.element?.editing) this.stopEdit();
       this.rectOrigin = { X: e.offsetX, Y: e.offsetY };
       this.createElement(new Rectangle());
       this.svg.mousemove((e: any) => this.newRect_mm(e, addPolyline));
@@ -25,16 +26,16 @@ export default class RectangleBuilder extends AngledBuilder<Rectangle> {
 
   rect_mu(event: MouseEvent, addPolyline: () => void) {
     if (this.rectOrigin) {
-      if (Math.abs(this.rectOrigin.X - event.offsetX) < 10 ||
-        Math.abs(this.rectOrigin.Y - event.offsetY) < 10) {
+      if (Math.abs(this.rectOrigin.X - event.offsetX) < 10 || Math.abs(this.rectOrigin.Y - event.offsetY) < 10) {
         this.removeElement();
         this.rectOrigin = undefined;
         return;
       }
       if (!this.element) throw new Error();
-      this.element.shape.points.filter((point, index) => index < this.element!.shape.points.length - 1)
-        .forEach(point => {
-          this.element!.discs.push(this.drawDisc(point[0], point[1], 2, '#000'))
+      this.element.shape.points
+        .filter((point, index) => index < this.element!.shape.points.length - 1)
+        .forEach((point) => {
+          this.element!.discs.push(this.drawDisc(point[0], point[1], 2, '#000'));
         });
       this.svg.off('mousemove').off('mouseup');
       addPolyline();
@@ -53,7 +54,7 @@ export default class RectangleBuilder extends AngledBuilder<Rectangle> {
   newRect_mm(e: MouseEvent, addPolyline: () => void) {
     if (this.rectOrigin) {
       if (e.buttons !== 1) return this.rect_mu(e, addPolyline);
-      let points: ArrayXY[] | PointArray = [] = [];
+      let points: ArrayXY[] | PointArray = ([] = []);
       points.push([this.rectOrigin.X, this.rectOrigin.Y]);
       if (e.shiftKey) {
         let diff = Math.min(Math.abs(this.rectOrigin.X - e.offsetX), Math.abs(this.rectOrigin.Y - e.offsetY));
@@ -62,8 +63,7 @@ export default class RectangleBuilder extends AngledBuilder<Rectangle> {
         points.push([this.rectOrigin.X, diff * ySign + this.rectOrigin.Y]);
         points.push([diff * xSign + this.rectOrigin.X, diff * ySign + this.rectOrigin.Y]);
         points.push([diff * xSign + this.rectOrigin.X, this.rectOrigin.Y]);
-      }
-      else {
+      } else {
         points.push([this.rectOrigin.X, e.offsetY]);
         points.push([e.offsetX, e.offsetY]);
         points.push([e.offsetX, this.rectOrigin.Y]);
@@ -78,7 +78,10 @@ export default class RectangleBuilder extends AngledBuilder<Rectangle> {
     // Moves a vertex of the polyline
     if (this.dragIndex !== undefined) {
       if (e.buttons !== 1) return this.editShape_mu();
-      let elem = this.element!, phi = elem.shape.phi, discRadius = this.sd.discRadius, oldCenter = elem.shape.getCenter();
+      let elem = this.element!,
+        phi = elem.shape.phi,
+        discRadius = this.sd.discRadius,
+        oldCenter = elem.shape.getCenter();
       let [x, y] = Util.rotate([e.offsetX, e.offsetY], oldCenter, -phi);
       elem.shape.points[this.dragIndex] = [x, y];
       let prevIndex = this.dragIndex === 0 ? 3 : this.dragIndex - 1,
@@ -92,22 +95,25 @@ export default class RectangleBuilder extends AngledBuilder<Rectangle> {
       }
       elem.shape.points[elem.shape.points.length - 1] = [...elem.shape.points[0]];
       elem.shape.centerChanged(Util.rotate(elem.shape.getCenter(), oldCenter, phi));
-      elem.discs.forEach((disc, i) => disc.move(elem.shape.points[i][0] - discRadius, elem.shape.points[i][1] - discRadius));
+      elem.discs.forEach((disc, i) =>
+        disc.move(elem.shape.points[i][0] - discRadius, elem.shape.points[i][1] - discRadius)
+      );
       this.plotAngledShape();
       this.rotate();
     }
   }
 
   override processShape(): void {
-    let shape = this.shape!, points = shape.points;
+    let shape = this.shape!,
+      points = shape.points;
     if (points[0][0] === points[3][0]) {
       let p = points[1];
       points[1] = [...points[3]];
       points[3] = [...p];
     }
     if (points[0][0] != points[1][0]) {
-      shape.phi = Math.atan2(points[3][1] - points[0][1], points[3][0] - points[0][0]) * 180 / Math.PI;
-      shape.points = points.map(p => Util.rotate(p, shape.getCenter(), -shape.phi));
+      shape.phi = (Math.atan2(points[3][1] - points[0][1], points[3][0] - points[0][0]) * 180) / Math.PI;
+      shape.points = points.map((p) => Util.rotate(p, shape.getCenter(), -shape.phi));
     }
   }
 }
