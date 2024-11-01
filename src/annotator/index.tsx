@@ -35,10 +35,17 @@ const ImageAnnotator: FC<ImageAnnotatorProps> = props => {
     if (dots.length > 0) director.plot(dots);
   };
 
+  let currentZoom: number = 1;
+
   const zoom = (factor: number, relative: boolean = true) => {
     let director = getDirector();
     factor = director.setSizeAndRatio(factor, relative);
     director.zoom(factor);
+    const containerWidth = Number(getDirector().container.style.width.replace("px", ""));
+    Object.assign(getDirector().container.style, {
+      width: containerWidth * factor + "px"
+    });
+    currentZoom = factor;
   };
 
   const stopAll = () => {
@@ -142,7 +149,7 @@ const ImageAnnotator: FC<ImageAnnotatorProps> = props => {
       marker = svg.rect(10, 512).fill("#ff00ff80");
 
       setMarkerPosition = (position: number) => {
-        marker.move(Math.floor((container.scrollWidth ?? 0) * position), 0);
+        marker.move(Math.floor((container.scrollWidth ?? 0) * currentZoom * position), 0);
       };
     },
     [props.width, props.height, props.shapes]
@@ -161,17 +168,22 @@ const ImageAnnotator: FC<ImageAnnotatorProps> = props => {
       if (e.key === "Delete") Director.instance?.remove();
       if (e.key === "Escape") Director.instance?.stopEdit();
     };
+    const contextmenu = (e: MouseEvent) => {
+      props.onRightClick?.(e.offsetX / Number(svgContainer?.container.scrollWidth));
+    };
     if (svgContainer && props.imageUrl) {
       onload(svgContainer.svg, svgContainer.container, props.imageUrl);
       window.addEventListener("keydown", onkeydown);
       window.addEventListener("keyup", keyup);
       window.addEventListener("blur", onblur);
+      window.addEventListener("contextmenu", contextmenu);
     }
     return () => {
       Director.instance?.clear();
       window.removeEventListener("keydown", onkeydown);
       window.removeEventListener("keyup", keyup);
       window.removeEventListener("blur", onblur);
+      window.removeEventListener("contextmenu", contextmenu);
     };
   }, [svgContainer, props.imageUrl]);
 
@@ -185,6 +197,7 @@ export interface ImageAnnotatorProps {
   onAdded?: (shape: Shape) => any;
   onSelected?: (shape: Shape) => any;
   onContextMenu?: (shape: Shape) => any;
+  onRightClick?: (position: number) => void;
   onUpdated?: () => void;
   imageUrl?: string;
   shapes?: Shape[] | any[];
