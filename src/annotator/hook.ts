@@ -20,5 +20,6 @@ export type AnnotatorHandles = {
   zoom: (factor: number, relative?: boolean) => void;
   getShapes: () => Shape[];
   setMarkerPosition: (position: number) => void;
+  stopPlayback: () => void;
   container: HTMLDivElement;
 };

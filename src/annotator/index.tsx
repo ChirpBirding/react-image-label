@@ -1,10 +1,14 @@
-import React, {useEffect, FC} from "react";
+import React, {useEffect, FC, useCallback} from "react";
 import {SvgContainer, useSvgContainer, Svg, svgUpdate} from "react-svgdotjs";
 import {Director} from "../base/Director";
 import {Shape, Polygon, Rectangle, Circle, Ellipse, Dot} from "../base/types";
 import Util from "../base/util";
 import {AnnotatorHandles} from "./hook";
 import "./index.css";
+import {Rect, Runner} from "@svgdotjs/svg.js";
+
+let marker: Rect;
+let markerAnimation: Runner | null = null;
 
 const ImageAnnotator: FC<ImageAnnotatorProps> = props => {
   const {setHandles, svgContainer} = useSvgContainer();
@@ -54,8 +58,8 @@ const ImageAnnotator: FC<ImageAnnotatorProps> = props => {
     director.stopEdit();
   };
 
-  let setMarkerPosition: (position: number) => void;
-  let marker: any;
+  let setMarkerPosition: (position: number) => void = () => null;
+  let stopPlayback: () => void;
 
   const getHandles = () => ({
     drawRectangle() {
@@ -86,7 +90,8 @@ const ImageAnnotator: FC<ImageAnnotatorProps> = props => {
       getDirector().updateCategories(id, categories, color),
     zoom,
     getShapes: getDirector().getShapes,
-    setMarkerPosition
+    setMarkerPosition,
+    stopPlayback
   });
 
   const onload = React.useCallback(
@@ -146,13 +151,13 @@ const ImageAnnotator: FC<ImageAnnotatorProps> = props => {
 
       image.node.addEventListener("testEvent", onloaded);
 
-      marker = svg.rect(10, 512).fill("#ff00ff80");
-
-      setMarkerPosition = (position: number) => {
-        marker.move(Math.floor((container.scrollWidth ?? 0) * currentZoom * position), 0);
+      stopPlayback = () => {
+        console.log("stopPlayback");
+        marker?.remove();
+        markerAnimation?.timeline()?.stop();
       };
     },
-    [props.width, props.height, props.shapes]
+    [props.width, props.height, props.shapes, props.duration]
   );
 
   useEffect(() => {
@@ -168,24 +173,50 @@ const ImageAnnotator: FC<ImageAnnotatorProps> = props => {
       if (e.key === "Delete") Director.instance?.remove();
       if (e.key === "Escape") Director.instance?.stopEdit();
     };
-    const contextmenu = (e: MouseEvent) => {
-      props.onRightClick?.(e.offsetX / Number(svgContainer?.container.scrollWidth));
-    };
     if (svgContainer && props.imageUrl) {
       onload(svgContainer.svg, svgContainer.container, props.imageUrl);
       window.addEventListener("keydown", onkeydown);
       window.addEventListener("keyup", keyup);
       window.addEventListener("blur", onblur);
-      window.addEventListener("contextmenu", contextmenu);
     }
     return () => {
       Director.instance?.clear();
       window.removeEventListener("keydown", onkeydown);
       window.removeEventListener("keyup", keyup);
       window.removeEventListener("blur", onblur);
-      window.removeEventListener("contextmenu", contextmenu);
     };
   }, [svgContainer, props.imageUrl]);
+
+  // PLAYBACK POSITION (RIGHT CLICK) HANDLER
+  useEffect(() => {
+    const contextmenu = (e: MouseEvent) => {
+      marker?.remove();
+
+      const totalWidth = Math.floor(svgContainer!.container.scrollWidth ?? 0);
+      const position = e.offsetX / totalWidth;
+      const remainingTime = props.duration - props.duration * position;
+
+      marker = svgContainer!.svg.rect(10, 512).fill("#ff00ff80");
+      marker.move(e.offsetX, 0);
+
+      markerAnimation = marker
+        .animate(remainingTime * 1000, 0)
+        .ease("-")
+        .move(totalWidth, 0);
+
+      markerAnimation.during(() => {
+        marker.node.scrollIntoView();
+      });
+
+      props.onRightClick?.(position);
+    };
+    if (svgContainer && props.imageUrl) {
+      window.addEventListener("contextmenu", contextmenu);
+    }
+    return () => {
+      window.removeEventListener("contextmenu", contextmenu);
+    };
+  }, [svgContainer, setMarkerPosition]);
 
   return <SvgContainer setHandles={setHandles} />;
 };
@@ -207,4 +238,5 @@ export interface ImageAnnotatorProps {
   discRadius?: number;
   hideBorder?: boolean;
   setHandles: (handles: AnnotatorHandles) => void;
+  duration: number;
 }
