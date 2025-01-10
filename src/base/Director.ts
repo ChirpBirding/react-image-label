@@ -35,7 +35,9 @@ export class Director {
     return builder;
   }
 
-  stopEdit = (): void => this.builders.filter(b => b.element?.editing).forEach(b => b.stopEdit());
+  stopEdit = (): void => {
+    this.builders.filter(b => b.element?.editing).forEach(b => b.stopEdit());
+  };
 
   edit(id: number): void {
     this.stopEdit();
@@ -59,7 +61,6 @@ export class Director {
 
   plot(shapes: Shape[]): void {
     shapes.forEach(shape => {
-      shape.id = ++Util.maxId;
       this.getBuilder(shape).basePlotShape();
       this.addShape(shape, false);
     });
@@ -69,7 +70,9 @@ export class Director {
     let builder = this.getBuilder(shape);
     builder.drawing = true;
     builder.createElement(shape);
-    builder.startDraw(() => this.addShape(shape));
+    builder.startDraw(() => {
+      this.addShape(shape);
+    });
   }
 
   stopDraw(): void {
@@ -84,7 +87,7 @@ export class Director {
     let builder = this.getBuilder(shape);
     if (!builder.element) return;
     if (builder.element.shape.id === 0) {
-      builder.element.shape.id = ++Util.maxId;
+      builder.element.shape.id = this.elements.length === 0 ? 1 : Math.max(...this.elements.map(el => el.shape.id)) + 1;
     }
     let id = builder.element.shape.id;
     this.elements.push(builder.element);
@@ -110,8 +113,8 @@ export class Director {
       if (!builder.element!.editing) builder.edit();
       Director.onAdded?.(builder.element.shape);
       Director.onSelected?.(builder.element.shape);
+      Director.onUpdated?.();
     }
-    Director.onUpdated?.();
   }
 
   updateCategories(id: number, categories: string[], color?: string) {

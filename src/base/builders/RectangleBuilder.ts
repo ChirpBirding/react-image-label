@@ -9,7 +9,8 @@ export default class RectangleBuilder extends AngledBuilder<Rectangle> {
   shape?: Rectangle;
   onUpdated: (() => void) | undefined;
   newShape = () => new Rectangle();
-
+  protected canRotate: boolean = false;
+  
   ofType<T>(shape: T): boolean {
     return shape instanceof Rectangle;
   }

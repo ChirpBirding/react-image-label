@@ -19,7 +19,7 @@ const ImageAnnotator: FC<ImageAnnotatorProps> = props => {
     if (!shapes) return;
     let rectangles = shapes
       .filter(s => s instanceof Rectangle || s.type === "rectangle")
-      .map(s => new Rectangle([...s.points], s.categories, s.color));
+      .map(s => new Rectangle([...s.points], s.categories, s.color, s.id));
     let polygons = shapes
       .filter(s => s instanceof Polygon || s.type === "polygon")
       .map(s => new Polygon([...s.points], s.categories, s.color));
@@ -112,7 +112,7 @@ const ImageAnnotator: FC<ImageAnnotatorProps> = props => {
         let naturalWidth = target.naturalWidth,
           naturalHeight = target.naturalHeight,
           maxWidth = props.width,
-          maxHeight = props.height,
+          maxHeight = props.height, 
           ratio = 1;
         svg.addClass("il-svg");
         Object.assign(container.style, {
@@ -130,7 +130,7 @@ const ImageAnnotator: FC<ImageAnnotatorProps> = props => {
         }
         let statics = {
           width: naturalWidth,
-          height: naturalHeight,
+          height: naturalHeight * (props.heightZoom ?? 1),
           ratio,
           discRadius: props.discRadius || 5,
           hb: props.hideBorder
@@ -139,6 +139,7 @@ const ImageAnnotator: FC<ImageAnnotatorProps> = props => {
         drawShapes(props.shapes);
         props.setHandles({...getHandles(), container});
         props.onReady?.({...getHandles(), container});
+        window.scrollTo(0, 0);
       };
 
       container.setAttribute("data-img", Util.fileName(imageUrl));
@@ -147,12 +148,12 @@ const ImageAnnotator: FC<ImageAnnotatorProps> = props => {
         .image(imageUrl, onloaded)
         .size("100%", "100%")
         .attr("onmousedown", "return false")
-        .attr("oncontextmenu", "return false");
+        .attr("oncontextmenu", "return false")
+        .attr("preserveAspectRatio", "none");
 
       image.node.addEventListener("testEvent", onloaded);
 
       stopPlayback = () => {
-        console.log("stopPlayback");
         marker?.remove();
         markerAnimation?.timeline()?.stop();
       };
@@ -235,6 +236,7 @@ export interface ImageAnnotatorProps {
   naturalSize?: boolean;
   width?: number;
   height?: number;
+  heightZoom?: number;
   discRadius?: number;
   hideBorder?: boolean;
   setHandles: (handles: AnnotatorHandles) => void;

@@ -13,7 +13,6 @@ export type StaticData = {
 };
 
 export abstract class Shape {
-  id: number;
   getCenterWithOffset = (): Point => ({X: 0, Y: 0});
   abstract type: string;
   abstract labelPosition(): ArrayXY;
@@ -22,8 +21,7 @@ export abstract class Shape {
   abstract output(ratio: number): Shape;
   abstract centerChanged(newCenter: ArrayXY): void;
 
-  constructor(public categories: string[] = [], public phi: number = 0, public color?: string) {
-    this.id = 0;
+  constructor(public categories: string[] = [], public phi: number = 0, public color?: string, public id: number = 0) {
   }
 
   getOutput(ratio: number, svg: SVGSVGElement): Shape {
@@ -81,8 +79,8 @@ export interface IlElementExtra {
 export type ElementWithExtra = Element & IlElementExtra;
 
 export abstract class AngledShape extends Shape {
-  constructor(public points: ArrayXY[] | PointArray = [], public categories: string[] = [], public color?: string) {
-    super(categories, 0, color);
+  constructor(public points: ArrayXY[] | PointArray = [], public categories: string[] = [], public color?: string, public id: number = 0) {
+    super(categories, 0, color, id);
   }
 
   labelPosition(): ArrayXY {
