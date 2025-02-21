@@ -1,7 +1,9 @@
 import {Svg} from "react-svgdotjs";
-import {Shape, ElementWithExtra, Color, Point, StaticData} from "./types";
+import {Shape, ElementWithExtra, Color, Point, StaticData, AngledShape} from "./types";
 import {ArrayXY, Path, Element} from "@svgdotjs/svg.js";
 import Util from "./util";
+
+const THREE_SECOND_WIDTH = 516;
 
 export abstract class ShapeBuilder<T extends Shape> {
   static _svg: Svg;
@@ -68,6 +70,37 @@ export abstract class ShapeBuilder<T extends Shape> {
   }
 
   setOptions(element: ElementWithExtra, categories: string[], color?: string) {
+    if (element.threeSecondLines) element.threeSecondLines.forEach(line => line.remove());
+    const points = (element.shape as AngledShape).outPoints(1);
+    const containerHeight = element.node.parentElement?.clientHeight ?? 0;
+
+    if (points.length == 4) {
+      const [[nwX, nwY], [swX, swY], [seX, seY], [neX, neY]] = points;
+      element.threeSecondLines = [
+        // // alternative: line as high as label box
+        // this.svg
+        //   .rect(THREE_SECOND_WIDTH, swY - nwY)
+        //   .move(nwX - THREE_SECOND_WIDTH, nwY)
+        //   .radius(2)
+        //   .fill("#ff000030"),
+        // this.svg
+        //   .rect(THREE_SECOND_WIDTH, swY - nwY)
+        //   .move(neX, neY)
+        //   .radius(2)
+        //   .fill("#ff000030")
+        this.svg
+          .rect(THREE_SECOND_WIDTH, 5)
+          .move(nwX - THREE_SECOND_WIDTH, nwY + (swY - nwY) / 2)
+          .radius(2)
+          .fill("#ff000050"),
+        this.svg
+          .rect(THREE_SECOND_WIDTH, 5)
+          .move(neX, nwY + (swY - nwY) / 2)
+          .radius(2)
+          .fill("#ff000050")
+      ];
+    }
+
     let labeled = categories.length > 0;
     this.labeledStyle(element, labeled, color);
     element.fill(color ? `${color}30` : Color.ShapeFill);
@@ -108,6 +141,7 @@ export abstract class ShapeBuilder<T extends Shape> {
       elem.categoriesPlain,
       elem.categoriesRect,
       elem.connector,
+      ...(elem.threeSecondLines ?? []),
       ...elem.discs,
       ...this.rotateArr
     ].forEach(el => el?.remove());

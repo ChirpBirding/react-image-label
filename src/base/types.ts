@@ -1,4 +1,14 @@
-import {ArrayXY, PointArray, Rect, Text, Element, Circle as Circ, Polyline} from "@svgdotjs/svg.js";
+import {
+  ArrayXY,
+  PointArray,
+  Rect,
+  Text,
+  Element,
+  Circle as Circ,
+  Polyline,
+  Line,
+  Shape as SvgShape
+} from "@svgdotjs/svg.js";
 import Util from "./util";
 
 export type Point = {X: number; Y: number};
@@ -21,8 +31,7 @@ export abstract class Shape {
   abstract output(ratio: number): Shape;
   abstract centerChanged(newCenter: ArrayXY): void;
 
-  constructor(public categories: string[] = [], public phi: number = 0, public color?: string, public id: number = 0) {
-  }
+  constructor(public categories: string[] = [], public phi: number = 0, public color?: string, public id: number = 0) {}
 
   getOutput(ratio: number, svg: SVGSVGElement): Shape {
     let obj = this.output(ratio);
@@ -69,6 +78,7 @@ export class Dot extends Shape {
 export interface IlElementExtra {
   categoriesPlain?: Text;
   categoriesRect?: Rect;
+  threeSecondLines?: SvgShape[];
   shape: Shape;
   shadow: Element;
   discs: Circ[];
@@ -79,7 +89,12 @@ export interface IlElementExtra {
 export type ElementWithExtra = Element & IlElementExtra;
 
 export abstract class AngledShape extends Shape {
-  constructor(public points: ArrayXY[] | PointArray = [], public categories: string[] = [], public color?: string, public id: number = 0) {
+  constructor(
+    public points: ArrayXY[] | PointArray = [],
+    public categories: string[] = [],
+    public color?: string,
+    public id: number = 0
+  ) {
     super(categories, 0, color, id);
   }
 

@@ -1,8 +1,8 @@
-import { ArrayXY, on, PointArray } from '@svgdotjs/svg.js';
-import { AngledBuilder } from '../AngledBuilder';
-import { Rectangle, Point } from '../types';
-import { ShapeBuilder } from '../ShapeBuilder';
-import Util from '../util';
+import {ArrayXY, on, PointArray} from "@svgdotjs/svg.js";
+import {AngledBuilder} from "../AngledBuilder";
+import {Rectangle, Point} from "../types";
+import {ShapeBuilder} from "../ShapeBuilder";
+import Util from "../util";
 
 export default class RectangleBuilder extends AngledBuilder<Rectangle> {
   rectOrigin?: Point;
@@ -10,7 +10,7 @@ export default class RectangleBuilder extends AngledBuilder<Rectangle> {
   onUpdated: (() => void) | undefined;
   newShape = () => new Rectangle();
   protected canRotate: boolean = false;
-  
+
   ofType<T>(shape: T): boolean {
     return shape instanceof Rectangle;
   }
@@ -18,7 +18,7 @@ export default class RectangleBuilder extends AngledBuilder<Rectangle> {
   rect_md(e: MouseEvent, addPolyline: () => void) {
     if (e.buttons === 1 && !e.ctrlKey && !this.rectOrigin) {
       if (this.element?.editing) this.stopEdit();
-      this.rectOrigin = { X: e.offsetX, Y: e.offsetY };
+      this.rectOrigin = {X: e.offsetX, Y: e.offsetY};
       this.createElement(new Rectangle());
       this.svg.mousemove((e: any) => this.newRect_mm(e, addPolyline));
       this.svg.mouseup((e: MouseEvent) => this.rect_mu(e, addPolyline));
@@ -35,10 +35,10 @@ export default class RectangleBuilder extends AngledBuilder<Rectangle> {
       if (!this.element) throw new Error();
       this.element.shape.points
         .filter((point, index) => index < this.element!.shape.points.length - 1)
-        .forEach((point) => {
-          this.element!.discs.push(this.drawDisc(point[0], point[1], 2, '#000'));
+        .forEach(point => {
+          this.element!.discs.push(this.drawDisc(point[0], point[1], 2, "#000"));
         });
-      this.svg.off('mousemove').off('mouseup');
+      this.svg.off("mousemove").off("mouseup");
       addPolyline();
       this.rectOrigin = undefined;
     }
@@ -49,7 +49,7 @@ export default class RectangleBuilder extends AngledBuilder<Rectangle> {
   }
 
   stopDraw() {
-    this.svg.off('mousedown').off('mouseup');
+    this.svg.off("mousedown").off("mouseup");
   }
 
   newRect_mm(e: MouseEvent, addPolyline: () => void) {
@@ -114,7 +114,7 @@ export default class RectangleBuilder extends AngledBuilder<Rectangle> {
     }
     if (points[0][0] != points[1][0]) {
       shape.phi = (Math.atan2(points[3][1] - points[0][1], points[3][0] - points[0][0]) * 180) / Math.PI;
-      shape.points = points.map((p) => Util.rotate(p, shape.getCenter(), -shape.phi));
+      shape.points = points.map(p => Util.rotate(p, shape.getCenter(), -shape.phi));
     }
   }
 }
